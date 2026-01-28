@@ -172,7 +172,9 @@
       transition: transform .10s ease, background .15s ease, border .15s ease, opacity .15s ease;
       user-select:none;
     }
-    .btn:hover{ background: rgba(255,255,255,0.09); }
+    
+  .btn.disabled{opacity:.45;pointer-events:none;}
+.btn:hover{ background: rgba(255,255,255,0.09); }
     .btn:active{ transform: translateY(1px); }
     .btn.primary{
       border-color: rgba(51,192,192,0.32);
@@ -651,7 +653,7 @@
                 <td class="right mono">${escapeHtml(size || "—")}</td>
                 <td class="right">
                   <button class="btn smallBtn" type="button" data-copy="${escapeHtml(link)}" ${link ? "" : "disabled"}>Copy</button>
-                  <button class="btn smallBtn" type="button" data-open="${escapeHtml(link)}" ${link ? "" : "disabled"}>${linkLabel}</button>
+                  <a class="btn smallBtn ${link ? "" : "disabled"}" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${linkLabel}</a>
                 </td>
               </tr>
             `;
@@ -726,11 +728,7 @@
         showToast("Link copied");
         return;
       }
-      const open = t.getAttribute("data-open");
-      if (open){
-        window.open(open, "_blank", "noopener,noreferrer");
-      }
-    }, { once: true });
+});
   }
 
   function saveSettings(){
