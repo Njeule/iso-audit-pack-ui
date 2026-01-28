@@ -359,7 +359,7 @@
       </div>
 
       <div class="pillbar">
-        <div class="pill"><span class="dot info"></span><span>Webhook</span><strong class="mono" style="color:rgba(255,255,255,0.85)">POST</strong></div>
+        <div class="pill"><span class="dot info"></span><span>Proxy</span><strong class="mono" style="color:rgba(255,255,255,0.85)">POST</strong></div>
         <div class="pill"><span class="dot good"></span><span>Outputs</span><span class="mono">folderUrl + files[]</span></div>
         <div class="pill"><span class="dot purple"></span><span>Tracking</span><span class="mono">jobId</span></div>
       </div>
@@ -377,28 +377,36 @@
       </div>
 
       <div class="content">
-        <details class="advanced" id="advancedBox" open>
-          <summary>
-            <span>Advanced settings</span>
-            <span class="summaryRight"><span class="mono" id="urlShort">(not set)</span></span>
-          </summary>
+        <details class="advanced" id="advancedBox">
+  <summary>
+    <span>Connection</span>
+    <span class="summaryRight">
+      <span class="badge good"><span class="dot good"></span>Secure proxy mode</span>
+      <span class="mono" id="urlShort">/api/proxy</span>
+    </span>
+  </summary>
 
-          <div class="grid" style="margin-top:12px;">
-            <div class="grid2">
-              <div class="field">
-                <label for="webhookUrl">n8n Webhook URL</label>
-                <input id="webhookUrl" placeholder="https://your-n8n-domain/webhook/audit-pack/generate" autocomplete="off" />
-                <div class="help">Use <span class="mono">/webhook-test/</span> while testing in-editor, and <span class="mono">/webhook/</span> when the workflow is active.</div>
-              </div>
+  <!-- Hidden fields kept for compatibility with existing JS wiring -->
+  <input id="webhookUrl" type="hidden" value="/api/proxy" />
+  <input id="apiKey" type="hidden" value="" />
 
-              <div class="field">
-                <label for="apiKey">API Key (optional)</label>
-                <input id="apiKey" placeholder="x-api-key header value" autocomplete="off" />
-                <div class="help">If enabled, sent as <span class="mono">x-api-key</span> header.</div>
-              </div>
-            </div>
-          </div>
-        </details>
+  <div class="grid" style="margin-top:12px;">
+    <div class="kv">
+      <div class="k">How this works</div>
+      <div class="v">
+        Your browser calls <span class="mono">/api/proxy</span> on this site. The serverless proxy forwards the request to n8n using
+        <span class="mono">N8N_WEBHOOK_URL</span> (and optional <span class="mono">N8N_API_KEY</span>) stored securely in Vercel Environment Variables.
+      </div>
+      <div class="kvActions">
+        <button class="btn smallBtn" type="button" id="copyProxy">Copy /api/proxy</button>
+        <button class="btn smallBtn" type="button" id="openVercelVars">Vercel env vars</button>
+      </div>
+      <div class="help" style="margin-top:10px;">
+        ✅ Webhook URL and API key are not exposed to the browser.
+      </div>
+    </div>
+  </div>
+</details>
 
         <div class="grid" style="margin-top:14px;">
           <div class="grid2">
@@ -469,8 +477,7 @@
           <div class="result" id="result" style="display:none"></div>
 
           <div class="footer">
-            If you’re using a plain HTML file (like this), your webhook must allow browser requests (CORS) or be on n8n Cloud (which usually works).
-            For stronger security, deploy this UI on Vercel and proxy requests via a serverless route.
+            This Vercel deployment uses a secure serverless proxy (<span class="mono">/api/proxy</span>) so your n8n webhook URL and API key stay hidden. If generation fails, check Vercel Function logs for <span class="mono">proxy</span> and n8n execution logs.
           </div>
         </div>
       </div>
@@ -524,7 +531,7 @@
   }
 
   function setRunning(isRunning){
-    $("runBtn").disabled = isRunning || !($("webhookUrl").value.trim().startsWith("http"));
+    $("runBtn").disabled = isRunning;
     $("spin").style.display = isRunning ? "inline-block" : "none";
     $("runLabel").textContent = isRunning ? "Generating…" : "Generate Audit Pack";
     $("statusPill").style.display = isRunning ? "inline-flex" : "none";
@@ -729,8 +736,6 @@
   function saveSettings(){
     if ($("remember").value !== "yes") return;
     const settings = {
-      webhookUrl: $("webhookUrl").value.trim(),
-      apiKey: $("apiKey").value.trim(),
       sheetId: $("sheetId").value.trim(),
       sheetName: $("sheetName").value.trim(),
       notifyEmail: $("notifyEmail").value.trim(),
@@ -745,8 +750,6 @@
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return;
       const s = JSON.parse(raw);
-      if (s.webhookUrl) $("webhookUrl").value = s.webhookUrl;
-      if (s.apiKey) $("apiKey").value = s.apiKey;
       if (s.sheetId) $("sheetId").value = s.sheetId;
       if (s.sheetName) $("sheetName").value = s.sheetName;
       if (s.notifyEmail) $("notifyEmail").value = s.notifyEmail;
@@ -756,27 +759,18 @@
   }
 
   function updateUrlHints(){
-    const url = $("webhookUrl").value.trim();
-    const short = url ? (url.length > 42 ? url.slice(0, 42) + "…" : url) : "(not set)";
-    $("urlShort").textContent = short;
-
-    let env = "";
-    if (url.includes("/webhook-test/")) env = "test";
-    else if (url.includes("/webhook/")) env = "prod";
-    $("envHint").textContent = env ? `env: ${env}` : "";
+    $("urlShort").textContent = "/api/proxy";
+    $("envHint").textContent = "mode: secure proxy";
   }
 
   function setEnabled(){
-    $("runBtn").disabled = !($("webhookUrl").value.trim().startsWith("http"));
+    $("runBtn").disabled = false;
   }
 
   async function run(){
     clearAlert();
     $("result").style.display = "none";
     $("result").innerHTML = "";
-
-    const webhookUrl = $("webhookUrl").value.trim();
-    const apiKey = $("apiKey").value.trim();
 
     const payload = {
       sheetId: $("sheetId").value.trim() || undefined,
@@ -798,11 +792,7 @@
 
     try{
       saveSettings();
-
-      const headers = { "Content-Type": "application/json" };
-      if (apiKey) headers["x-api-key"] = apiKey;
-
-      const res = await fetch("/api/proxy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+const res = await fetch("/api/proxy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const text = await res.text();
       let data = {};
       try { data = text ? JSON.parse(text) : {}; }
@@ -827,7 +817,7 @@
       const msg = e?.message || "Failed";
       $("statusDot").className = "dot bad";
       $("statusText").textContent = "Failed";
-      $("statusHint").textContent = "Check your webhook URL and workflow execution logs.";
+      $("statusHint").textContent = "Check Vercel Function logs for /api/proxy and your n8n execution logs.";
 
       setAlert("bad", "Generation failed", `
         <div>${escapeHtml(msg)}</div>
@@ -847,9 +837,25 @@
   updateUrlHints();
   setEnabled();
 
+  // Connection helpers (secure proxy)
+  const copyProxyBtn = $("copyProxy");
+  if (copyProxyBtn){
+    copyProxyBtn.addEventListener("click", async () => {
+      await navigator.clipboard.writeText("/api/proxy");
+      showToast("Copied /api/proxy");
+    });
+  }
+  const openVarsBtn = $("openVercelVars");
+  if (openVarsBtn){
+    openVarsBtn.addEventListener("click", () => {
+      window.open("https://vercel.com/dashboard", "_blank", "noopener,noreferrer");
+    });
+  }
+
+
   // Events
-  $("webhookUrl").addEventListener("input", () => { updateUrlHints(); setEnabled(); });
-  ["apiKey","sheetId","sheetName","notifyEmail","packPrefix","packType","remember"].forEach(id => {
+  // Connection is locked to /api/proxy (no webhook input)
+  ["sheetId","sheetName","notifyEmail","packPrefix","packType","remember"].forEach(id => {
     $(id).addEventListener("change", saveSettings);
   });
 
