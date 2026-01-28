@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ISO Audit Pack Generator</title>
+  <style>
+    :root{
+      --bg: #0b1220;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.09);
+      --border: rgba(255,255,255,0.14);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.68);
+      --muted2: rgba(255,255,255,0.55);
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --accent: #33C0C0;
+      --accent2: #7c3aed;
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background:
+        radial-gradient(1000px 600px at 15% 10%, rgba(51,192,192,0.28), transparent 55%),
+        radial-gradient(900px 540px at 75% 20%, rgba(124,58,237,0.22), transparent 55%),
+        radial-gradient(1200px 700px at 50% 100%, rgba(34,197,94,0.10), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    a{ color: #b9fffb; text-decoration: none; }
+    a:hover{ text-decoration: underline; }
+    .wrap{ max-width: 1040px; margin: 42px auto; padding: 18px; }
+    .hero{
+      display:flex; gap:18px; align-items:flex-start; justify-content:space-between;
+      margin-bottom: 18px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:8px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      letter-spacing:-0.5px;
+      line-height:1.1;
+    }
+    .subtitle{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height:1.5;
+      max-width: 74ch;
+    }
+    .pillbar{ display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .dot{ width:8px; height:8px; border-radius:999px; background: var(--muted2); }
+    .dot.good{ background: var(--good); }
+    .dot.warn{ background: var(--warn); }
+    .dot.bad{ background: var(--bad); }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.05));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .cardHeader{
+      padding: 16px 16px 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.12);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+    }
+    .cardHeader h2{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+      color: rgba(255,255,255,0.85);
+    }
+    .cardHeader .hint{
+      margin-top:6px;
+      font-size: 12px;
+      color: var(--muted2);
+      line-height: 1.4;
+      max-width: 78ch;
+    }
+    .content{ padding: 16px; }
+
+    .grid{ display:grid; gap: 12px; }
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 860px){
+      .hero{ flex-direction:column; }
+      .pillbar{ justify-content:flex-start; }
+      .grid2{ grid-template-columns: 1fr; }
+    }
+
+    label{ display:block; font-size: 12px; color: rgba(255,255,255,0.80); margin-bottom: 6px; }
+    .field{
+      display:flex; flex-direction:column; gap: 6px;
+    }
+    input, select, textarea{
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.20);
+      color: var(--text);
+      outline: none;
+      transition: border .15s ease, box-shadow .15s ease, transform .10s ease;
+    }
+    input::placeholder{ color: rgba(255,255,255,0.40); }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(51,192,192,0.55);
+      box-shadow: 0 0 0 3px rgba(51,192,192,0.15);
+    }
+    .help{
+      font-size: 11px;
+      color: var(--muted2);
+      line-height: 1.35;
+    }
+
+    details.advanced{
+      border: 1px dashed rgba(255,255,255,0.18);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.12);
+    }
+    details.advanced > summary{
+      cursor:pointer;
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      list-style: none;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    details.advanced > summary::-webkit-details-marker{ display:none; }
+    .summaryRight{
+      display:flex; gap:8px; align-items:center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .actions{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      padding: 11px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.15px;
+      transition: transform .10s ease, background .15s ease, border .15s ease, opacity .15s ease;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.09); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: rgba(51,192,192,0.32);
+      background: linear-gradient(135deg, rgba(51,192,192,0.22), rgba(124,58,237,0.16));
+    }
+    .btn.primary:hover{
+      border-color: rgba(51,192,192,0.55);
+      background: linear-gradient(135deg, rgba(51,192,192,0.28), rgba(124,58,237,0.18));
+    }
+    .btn.ghost{
+      background: transparent;
+    }
+    .btn:disabled{
+      opacity: .55;
+      cursor:not-allowed;
+      transform:none;
+    }
+
+    .spinner{
+      width: 16px; height: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: rgba(255,255,255,0.90);
+      animation: spin .85s linear infinite;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+
+    .statusRow{
+      display:flex; gap:10px; align-items:center; flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .statusPill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.16);
+      font-size: 12px;
+      color: rgba(255,255,255,0.82);
+    }
+    .statusPill small{ color: var(--muted); font-weight: 500; }
+    .progressLine{
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.10);
+      overflow:hidden;
+      flex: 1;
+      min-width: 220px;
+    }
+    .progressBar{
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(51,192,192,0.90), rgba(124,58,237,0.80));
+      border-radius: 999px;
+      transition: width .25s ease;
+    }
+
+    .alert{
+      margin-top: 12px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.14);
+      color: rgba(255,255,255,0.86);
+      display:none;
+    }
+    .alert.show{ display:block; }
+    .alert.good{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); }
+    .alert.bad{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); }
+    .alert.warn{ border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.10); }
+    .alertTitle{ font-weight: 750; margin-bottom: 6px; }
+    .alertBody{ color: rgba(255,255,255,0.80); font-size: 13px; line-height: 1.45; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    .result{
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    .metaGrid{
+      display:grid; gap: 10px;
+      grid-template-columns: 1.2fr .8fr;
+      align-items:start;
+    }
+    @media (max-width: 860px){
+      .metaGrid{ grid-template-columns: 1fr; }
+    }
+    .kv{
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.18);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .kv .k{ font-size: 11px; color: var(--muted2); margin-bottom: 6px; }
+    .kv .v{ font-size: 13px; color: rgba(255,255,255,0.90); overflow-wrap:anywhere; }
+    .kv .v a{ color: #b9fffb; }
+    .kvActions{ display:flex; gap: 8px; margin-top: 10px; flex-wrap:wrap; }
+
+    .table{
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      overflow:hidden;
+      background: rgba(0,0,0,0.18);
+    }
+    .table th, .table td{
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align:left;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    .table th{
+      font-size: 11px;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.68);
+      background: rgba(255,255,255,0.04);
+    }
+    .table tr:last-child td{ border-bottom: none; }
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      font-size: 11px;
+      color: rgba(255,255,255,0.86);
+      background: rgba(255,255,255,0.04);
+      white-space:nowrap;
+    }
+    .badge.good{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); }
+    .badge.warn{ border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.10); }
+    .badge.info{ border-color: rgba(51,192,192,0.35); background: rgba(51,192,192,0.10); }
+    .badge.purple{ border-color: rgba(124,58,237,0.35); background: rgba(124,58,237,0.10); }
+
+    .smallBtn{
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .right{ text-align:right; }
+    .footer{
+      margin-top: 14px;
+      color: var(--muted2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .toast{
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 50;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.50);
+      color: rgba(255,255,255,0.88);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .2s ease, transform .2s ease;
+      pointer-events:none;
+      font-size: 12px;
+    }
+    .toast.show{
+      opacity: 1;
+      transform: translateY(0px);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="title">
+        <h1>ISO Audit Pack Generator</h1>
+        <p class="subtitle">
+          Generate an ISO audit pack via your n8n webhook and receive a Drive folder link + file inventory (with metadata like category and size).
+          While generating, we’ll show progress and a “this may take a few seconds” hint.
+        </p>
+      </div>
+
+      <div class="pillbar">
+        <div class="pill"><span class="dot info"></span><span>Webhook</span><strong class="mono" style="color:rgba(255,255,255,0.85)">POST</strong></div>
+        <div class="pill"><span class="dot good"></span><span>Outputs</span><span class="mono">folderUrl + files[]</span></div>
+        <div class="pill"><span class="dot purple"></span><span>Tracking</span><span class="mono">jobId</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cardHeader">
+        <div>
+          <h2>Run configuration</h2>
+          <div class="hint">Tip: Keep “Advanced settings” collapsed for day‑to‑day use. Pack type supports <span class="mono">auditor</span> or <span class="mono">management</span>.</div>
+        </div>
+        <div class="summaryRight">
+          <span class="mono" id="envHint"></span>
+        </div>
+      </div>
+
+      <div class="content">
+        <details class="advanced" id="advancedBox" open>
+          <summary>
+            <span>Advanced settings</span>
+            <span class="summaryRight"><span class="mono" id="urlShort">(not set)</span></span>
+          </summary>
+
+          <div class="grid" style="margin-top:12px;">
+            <div class="grid2">
+              <div class="field">
+                <label for="webhookUrl">n8n Webhook URL</label>
+                <input id="webhookUrl" placeholder="https://your-n8n-domain/webhook/audit-pack/generate" autocomplete="off" />
+                <div class="help">Use <span class="mono">/webhook-test/</span> while testing in-editor, and <span class="mono">/webhook/</span> when the workflow is active.</div>
+              </div>
+
+              <div class="field">
+                <label for="apiKey">API Key (optional)</label>
+                <input id="apiKey" placeholder="x-api-key header value" autocomplete="off" />
+                <div class="help">If enabled, sent as <span class="mono">x-api-key</span> header.</div>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <div class="grid" style="margin-top:14px;">
+          <div class="grid2">
+            <div class="field">
+              <label for="sheetId">Google Sheet ID (optional)</label>
+              <input id="sheetId" placeholder="1Tlejo9gvJGhgDhmkn-U-..." autocomplete="off" />
+              <div class="help">Leave blank to use the workflow’s default sheet (if configured).</div>
+            </div>
+
+            <div class="field">
+              <label for="sheetName">Sheet Name</label>
+              <input id="sheetName" value="Sheet1" autocomplete="off" />
+              <div class="help">Default: <span class="mono">Sheet1</span></div>
+            </div>
+
+            <div class="field">
+              <label for="notifyEmail">Notification Email (optional)</label>
+              <input id="notifyEmail" placeholder="iso-compliance@company.com" autocomplete="off" />
+              <div class="help">If provided, your workflow can send a single notification email once the pack is ready.</div>
+            </div>
+
+            <div class="field">
+              <label for="packPrefix">Pack Prefix</label>
+              <input id="packPrefix" value="ISO_Audit_Pack" autocomplete="off" />
+              <div class="help">Used to name the Drive folder and output files.</div>
+            </div>
+
+            <div class="field">
+              <label for="packType">Pack Type</label>
+              <select id="packType">
+                <option value="auditor">auditor (full pack)</option>
+                <option value="management">management (summary + exceptions)</option>
+              </select>
+              <div class="help">Matches your workflow logic for filtered file bundles.</div>
+            </div>
+
+            <div class="field">
+              <label for="remember">Remember settings</label>
+              <select id="remember">
+                <option value="yes" selected>Yes (recommended)</option>
+                <option value="no">No</option>
+              </select>
+              <div class="help">Stores inputs locally in your browser (localStorage).</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="runBtn" disabled>
+              <span class="spinner" id="spin" style="display:none"></span>
+              <span id="runLabel">Generate Audit Pack</span>
+            </button>
+            <button class="btn ghost" id="clearBtn" type="button">Clear results</button>
+            <span class="statusPill" id="statusPill" style="display:none">
+              <span class="dot warn" id="statusDot"></span>
+              <span id="statusText">Generating…</span>
+              <small id="statusHint">This may take a few seconds.</small>
+            </span>
+            <div class="progressLine" id="progressLine" style="display:none">
+              <div class="progressBar" id="progressBar"></div>
+            </div>
+          </div>
+
+          <div class="alert" id="alertBox">
+            <div class="alertTitle" id="alertTitle"></div>
+            <div class="alertBody" id="alertBody"></div>
+          </div>
+
+          <div class="result" id="result" style="display:none"></div>
+
+          <div class="footer">
+            If you’re using a plain HTML file (like this), your webhook must allow browser requests (CORS) or be on n8n Cloud (which usually works).
+            For stronger security, deploy this UI on Vercel and proxy requests via a serverless route.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  const LS_KEY = "audit_pack_ui_settings_v2";
+
+  function showToast(msg){
+    const el = $("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(()=> el.classList.remove("show"), 1400);
+  }
+
+  function fmtBytes(bytes){
+    const n = Number(bytes);
+    if (!isFinite(n) || n <= 0) return "";
+    const units = ["B","KB","MB","GB"];
+    let v = n; let i = 0;
+    while (v >= 1024 && i < units.length-1){ v/=1024; i++; }
+    return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function setAlert(kind, title, body){
+    const box = $("alertBox");
+    box.className = "alert show " + (kind || "");
+    $("alertTitle").textContent = title || "";
+    $("alertBody").innerHTML = body || "";
+  }
+  function clearAlert(){
+    const box = $("alertBox");
+    box.className = "alert";
+    $("alertTitle").textContent = "";
+    $("alertBody").textContent = "";
+  }
+
+  function setRunning(isRunning){
+    $("runBtn").disabled = isRunning || !($("webhookUrl").value.trim().startsWith("http"));
+    $("spin").style.display = isRunning ? "inline-block" : "none";
+    $("runLabel").textContent = isRunning ? "Generating…" : "Generate Audit Pack";
+    $("statusPill").style.display = isRunning ? "inline-flex" : "none";
+    $("progressLine").style.display = isRunning ? "block" : "none";
+    if (!isRunning){
+      $("progressBar").style.width = "0%";
+      $("statusDot").className = "dot warn";
+      $("statusText").textContent = "";
+      $("statusHint").textContent = "";
+    }
+  }
+
+  function setStep(stepText, pct){
+    $("statusText").textContent = stepText || "Generating…";
+    $("statusHint").textContent = "This may take a few seconds.";
+    if (typeof pct === "number") $("progressBar").style.width = Math.max(0, Math.min(100, pct)) + "%";
+  }
+
+  function normalize(raw){
+    const folderUrl = raw.folderUrl || raw.folder_link || "";
+    const folderId = raw.folderId || raw.folder_id || "";
+    const jobId = raw.jobId || raw.job_id || null;
+    const generatedAt = raw.generatedAt || raw.generated_at || null;
+    const packDate = raw.packDate || raw.pack_date || null;
+    const files = Array.isArray(raw.files) ? raw.files : [];
+    return {
+      ok: raw.ok ?? true,
+      jobId, generatedAt, packDate,
+      folderUrl, folderId,
+      files: files.map(f => ({
+        id: f.id || "",
+        name: f.name || f.fileName || "file",
+        url: f.url || "",
+        sheetUrl: f.sheetUrl || f.sheet_url || null,
+        mimeType: f.mimeType || f.mime_type || "",
+        type: f.type || "",
+        category: f.category || "",
+        size: f.size || f.fileSize || ""
+      })),
+      raw
+    };
+  }
+
+  function renderResult(r){
+    const files = r.files || [];
+    const packType = $("packType").value;
+
+    const folderBlock = `
+      <div class="kv">
+        <div class="k">Drive folder</div>
+        <div class="v">${r.folderUrl ? `<a href="${escapeHtml(r.folderUrl)}" target="_blank" rel="noreferrer">${escapeHtml(r.folderUrl)}</a>` : "(none)"}</div>
+        <div class="kvActions">
+          <button class="btn smallBtn" type="button" id="copyFolder">Copy link</button>
+          ${r.folderUrl ? `<button class="btn smallBtn" type="button" id="openFolder">Open</button>` : ""}
+        </div>
+      </div>
+    `;
+
+    const metaBlock = `
+      <div class="kv">
+        <div class="k">Run metadata</div>
+        <div class="v">
+          <div><span class="badge info">packType</span> <span class="mono">${escapeHtml(packType)}</span></div>
+          <div style="margin-top:8px"><span class="badge purple">jobId</span> <span class="mono">${escapeHtml(r.jobId || "(not returned)")}</span></div>
+          <div style="margin-top:8px"><span class="badge">packDate</span> <span class="mono">${escapeHtml(r.packDate || "(n/a)")}</span></div>
+          <div style="margin-top:8px"><span class="badge">generatedAt</span> <span class="mono">${escapeHtml(r.generatedAt || "(n/a)")}</span></div>
+        </div>
+      </div>
+    `;
+
+    const count = files.length;
+    const countBadge = count === 0 ? `<span class="badge warn">0 files</span>` : `<span class="badge good">${count} files</span>`;
+
+    const table = `
+      <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span style="font-weight:750">Files</span>
+          ${countBadge}
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn smallBtn" type="button" id="copyAll">Copy all links</button>
+          <button class="btn smallBtn" type="button" id="downloadJson">Download JSON</button>
+        </div>
+      </div>
+
+      ${count === 0 ? `<div class="help" style="margin-top:10px">No files were returned. Check that your workflow uploads files and returns <span class="mono">files[]</span>.</div>` : `
+      <table class="table" aria-label="Files table">
+        <thead>
+          <tr>
+            <th style="width:42%">Name</th>
+            <th>Category</th>
+            <th>Type</th>
+            <th class="right">Size</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${files.map((f, idx) => {
+            const category = f.category || "";
+            const badgeClass =
+              category === "evidence" ? "info" :
+              category === "exceptions" ? "warn" :
+              category === "readiness" ? "warn" :
+              category === "summary" ? "purple" :
+              "badge";
+            const size = fmtBytes(f.size) || (f.size ? `${escapeHtml(f.size)} B` : "");
+            const link = f.url || f.sheetUrl || "";
+            const linkLabel = f.url ? "Open file" : (f.sheetUrl ? "Open sheet" : "Open");
+            return `
+              <tr>
+                <td>
+                  ${link ? `<a href="${escapeHtml(link)}" target="_blank" rel="noreferrer">${escapeHtml(f.name)}</a>` : escapeHtml(f.name)}
+                  <div class="help mono">${escapeHtml(f.id || "")}</div>
+                </td>
+                <td><span class="badge ${badgeClass}">${escapeHtml(category || "—")}</span></td>
+                <td><span class="badge">${escapeHtml(f.type || "—")}</span></td>
+                <td class="right mono">${escapeHtml(size || "—")}</td>
+                <td class="right">
+                  <button class="btn smallBtn" type="button" data-copy="${escapeHtml(link)}" ${link ? "" : "disabled"}>Copy</button>
+                  <button class="btn smallBtn" type="button" data-open="${escapeHtml(link)}" ${link ? "" : "disabled"}>${linkLabel}</button>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+      `}
+    `;
+
+    const rawDetails = `
+      <details class="advanced" style="margin-top:12px;">
+        <summary>
+          <span>Raw response</span>
+          <span class="summaryRight"><span class="mono">${escapeHtml(r.ok ? "ok:true" : "ok:false")}</span></span>
+        </summary>
+        <pre class="mono" style="margin-top:10px; white-space:pre-wrap; overflow:auto; background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.10); padding: 12px; border-radius: 14px;">${escapeHtml(JSON.stringify(r.raw, null, 2))}</pre>
+      </details>
+    `;
+
+    $("result").style.display = "block";
+    $("result").innerHTML = `
+      <div class="metaGrid">
+        ${folderBlock}
+        ${metaBlock}
+      </div>
+      ${table}
+      ${rawDetails}
+    `;
+
+    // Wire actions
+    const copyFolderBtn = $("copyFolder");
+    if (copyFolderBtn){
+      copyFolderBtn.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(r.folderUrl || "");
+        showToast("Folder link copied");
+      });
+    }
+    const openFolderBtn = $("openFolder");
+    if (openFolderBtn){
+      openFolderBtn.addEventListener("click", () => window.open(r.folderUrl, "_blank", "noopener,noreferrer"));
+    }
+
+    const copyAllBtn = $("copyAll");
+    if (copyAllBtn){
+      copyAllBtn.addEventListener("click", async () => {
+        const links = files.map(f => f.url || f.sheetUrl).filter(Boolean);
+        await navigator.clipboard.writeText(links.join("\n"));
+        showToast("All file links copied");
+      });
+    }
+
+    const downloadJsonBtn = $("downloadJson");
+    if (downloadJsonBtn){
+      downloadJsonBtn.addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(r.raw, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `audit_pack_response_${(r.packDate || "run")}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    }
+
+    // Row actions (event delegation)
+    $("result").addEventListener("click", async (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+
+      const copy = t.getAttribute("data-copy");
+      if (copy){
+        await navigator.clipboard.writeText(copy);
+        showToast("Link copied");
+        return;
+      }
+      const open = t.getAttribute("data-open");
+      if (open){
+        window.open(open, "_blank", "noopener,noreferrer");
+      }
+    }, { once: true });
+  }
+
+  function saveSettings(){
+    if ($("remember").value !== "yes") return;
+    const settings = {
+      webhookUrl: $("webhookUrl").value.trim(),
+      apiKey: $("apiKey").value.trim(),
+      sheetId: $("sheetId").value.trim(),
+      sheetName: $("sheetName").value.trim(),
+      notifyEmail: $("notifyEmail").value.trim(),
+      packPrefix: $("packPrefix").value.trim(),
+      packType: $("packType").value
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(settings));
+  }
+
+  function loadSettings(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s.webhookUrl) $("webhookUrl").value = s.webhookUrl;
+      if (s.apiKey) $("apiKey").value = s.apiKey;
+      if (s.sheetId) $("sheetId").value = s.sheetId;
+      if (s.sheetName) $("sheetName").value = s.sheetName;
+      if (s.notifyEmail) $("notifyEmail").value = s.notifyEmail;
+      if (s.packPrefix) $("packPrefix").value = s.packPrefix;
+      if (s.packType) $("packType").value = s.packType;
+    } catch {}
+  }
+
+  function updateUrlHints(){
+    const url = $("webhookUrl").value.trim();
+    const short = url ? (url.length > 42 ? url.slice(0, 42) + "…" : url) : "(not set)";
+    $("urlShort").textContent = short;
+
+    let env = "";
+    if (url.includes("/webhook-test/")) env = "test";
+    else if (url.includes("/webhook/")) env = "prod";
+    $("envHint").textContent = env ? `env: ${env}` : "";
+  }
+
+  function setEnabled(){
+    $("runBtn").disabled = !($("webhookUrl").value.trim().startsWith("http"));
+  }
+
+  async function run(){
+    clearAlert();
+    $("result").style.display = "none";
+    $("result").innerHTML = "";
+
+    const webhookUrl = $("webhookUrl").value.trim();
+    const apiKey = $("apiKey").value.trim();
+
+    const payload = {
+      sheetId: $("sheetId").value.trim() || undefined,
+      sheetName: $("sheetName").value.trim() || undefined,
+      notifyEmail: $("notifyEmail").value.trim() || undefined,
+      packPrefix: $("packPrefix").value.trim() || undefined,
+      packType: $("packType").value || undefined,
+    };
+
+    // Progress simulation (helps users feel it’s working)
+    setRunning(true);
+    setStep("Connecting to webhook…", 18);
+
+    const stepTimers = [];
+    const schedule = (ms, text, pct) => stepTimers.push(setTimeout(() => setStep(text, pct), ms));
+    schedule(550, "Running workflow steps…", 36);
+    schedule(1150, "Generating CSVs + uploading files…", 62);
+    schedule(1900, "Finalizing response…", 84);
+
+    try{
+      saveSettings();
+
+      const headers = { "Content-Type": "application/json" };
+      if (apiKey) headers["x-api-key"] = apiKey;
+
+      const res = await fetch("/api/proxy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const text = await res.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; }
+      catch { data = { ok: res.ok, message: text }; }
+
+      if (!res.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+
+      setStep("Complete ✅", 100);
+      $("statusDot").className = "dot good";
+      $("statusHint").textContent = "Pack generated successfully.";
+
+      const r = normalize(data);
+
+      setAlert("good", "Audit pack generated", `
+        <div>Job ID: <span class="mono">${escapeHtml(r.jobId || "(not returned)")}</span></div>
+        <div style="margin-top:6px">Files returned: <span class="mono">${escapeHtml(String(r.files.length))}</span></div>
+      `);
+
+      renderResult(r);
+      showToast("Done");
+    } catch (e){
+      const msg = e?.message || "Failed";
+      $("statusDot").className = "dot bad";
+      $("statusText").textContent = "Failed";
+      $("statusHint").textContent = "Check your webhook URL and workflow execution logs.";
+
+      setAlert("bad", "Generation failed", `
+        <div>${escapeHtml(msg)}</div>
+        <div class="help" style="margin-top:8px">If you’re calling <span class="mono">/webhook-test/</span>, keep the workflow editor open. For production, activate the workflow and use <span class="mono">/webhook/</span>.</div>
+      `);
+    } finally {
+      stepTimers.forEach(t => clearTimeout(t));
+      setTimeout(() => {
+        setRunning(false);
+        setEnabled();
+      }, 250);
+    }
+  }
+
+  // Init
+  loadSettings();
+  updateUrlHints();
+  setEnabled();
+
+  // Events
+  $("webhookUrl").addEventListener("input", () => { updateUrlHints(); setEnabled(); });
+  ["apiKey","sheetId","sheetName","notifyEmail","packPrefix","packType","remember"].forEach(id => {
+    $(id).addEventListener("change", saveSettings);
+  });
+
+  $("runBtn").addEventListener("click", run);
+  $("clearBtn").addEventListener("click", () => {
+    clearAlert();
+    $("result").style.display = "none";
+    $("result").innerHTML = "";
+    showToast("Cleared");
+  });
+</script>
+</body>
+</html>
